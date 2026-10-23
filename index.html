@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>守望先锋账号索引 - 皮肤搜索</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.header{background:#1e293b;padding:18px 24px;text-align:center;border-bottom:2px solid #334155;position:sticky;top:0;z-index:100}
+.header h1{font-size:1.3em;color:#fbbf24;margin-bottom:3px}
+.header p{font-size:.8em;color:#94a3b8}
+.bar{max-width:700px;margin:16px auto;padding:0 15px;display:flex;gap:10px;align-items:center}
+.bar input{flex:1;padding:10px 16px;border-radius:24px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;font-size:.95em;outline:none;transition:border .2s}
+.bar input:focus{border-color:#fbbf24}
+.bar input::placeholder{color:#64748b}
+.stats{padding:0 15px 10px;text-align:center;color:#64748b;font-size:.8em}
+.stats span{color:#fbbf24;font-weight:700}
+.table-wrap{max-width:100%;margin:0 15px 40px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.85em;table-layout:auto}
+thead th{position:sticky;top:0;background:#1e293b;color:#94a3b8;font-weight:600;text-align:left;padding:10px 12px;border-bottom:2px solid #334155;white-space:nowrap}
+tbody td{padding:8px 12px;border-bottom:1px solid #1e293b;vertical-align:middle}
+tbody tr:hover{background:rgba(251,191,36,.05)}
+tbody tr{cursor:pointer;transition:background .1s}
+.col-code{color:#fbbf24;font-weight:700;text-align:center;white-space:nowrap}
+.col-title a{color:#e2e8f0;text-decoration:none}
+.col-title a:hover{color:#fbbf24;text-decoration:underline}
+.col-desc{color:#94a3b8;white-space:pre-line;line-height:1.5;min-width:180px;max-width:340px}
+.col-price{text-align:right;color:#34d399;font-weight:600;white-space:nowrap}
+.col-link{text-align:center;white-space:nowrap}
+.col-link a{background:#fbbf24;color:#0f172a;padding:4px 12px;border-radius:16px;font-size:.8em;font-weight:700;text-decoration:none;white-space:nowrap;transition:background .15s}
+.col-link a:hover{background:#f59e0b}
+.highlight{background:#fbbf24;color:#0f172a;padding:0 2px;border-radius:2px}
+.no-results{text-align:center;padding:60px 20px;color:#64748b;font-size:1em}
+@media(max-width:768px){.header h1{font-size:1.1em}.table-wrap{margin:0 8px 30px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>守望先锋账号 · 皮肤索引</h1>
+  <p>仅显示<b>在售</b>商品 · 搜索英雄/皮肤名，点击跳转闲鱼商品页</p>
+</div>
+<div class="bar">
+  <input type="text" id="search" placeholder="搜索英雄、皮肤… 如「安娜」「邪鬼」「源氏」" autofocus>
+</div>
+<div class="stats" id="stats"></div>
+<div class="table-wrap">
+  <table id="table">
+    <thead>
+      <tr>
+        <th class="col-code">编号</th>
+        <th>商品标题</th>
+        <th class="col-price">价格</th>
+        <th class="col-desc">描述摘要</th>
+        <th class="col-link">链接</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="no-results" id="noResults" style="display:none">没有找到匹配的商品，试试其他关键词</div>
+</div>
+<script src="products.js"></script>
+<script>
+const SEARCH_KEYS = ['title','desc','code'];
+function tokenize(s){ return s.toLowerCase().replace(/[^\u4e00-\u9fff\w\d]/g,' ').split(/\s+/).filter(Boolean) }
+function search(query){
+  if(!query.trim()) return PRODUCTS;
+  const qs = tokenize(query);
+  return PRODUCTS.filter(p => {
+    const haystack = SEARCH_KEYS.map(k => (p[k]||'').toLowerCase()).join(' ');
+    return qs.every(q => haystack.includes(q));
+  });
+}
+function highlight(text, query){
+  if(!query.trim()) return text;
+  let result = text;
+  tokenize(query).forEach(q => {
+    result = result.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi'), '<span class="highlight">$1</span>');
+  });
+  return result;
+}
+function xyUrl(p){
+  return p.xianyuId ? 'https://h5.m.goofish.com/item?id='+p.xianyuId : '#';
+}
+function render(){
+  const q = document.getElementById('search').value;
+  const results = search(q);
+  document.getElementById('stats').innerHTML = '在售 <span>'+PRODUCTS.length+'</span> 个商品'+(q?' · 匹配 <span>'+results.length+'</span> 个':'');
+  const tbody = document.getElementById('tbody');
+  const noRes = document.getElementById('noResults');
+  if(!results.length){ tbody.innerHTML=''; noRes.style.display='block'; noRes.textContent=q?'没有找到匹配的商品':'加载中…'; return; }
+  noRes.style.display='none';
+  tbody.innerHTML = results.map(p => `
+    <tr onclick="window.open('${xyUrl(p)}','_blank')">
+      <td class="col-code">${p.code}</td>
+      <td class="col-title"><a href="${xyUrl(p)}" target="_blank" onclick="event.stopPropagation()">${highlight(p.title,q)}</a></td>
+      <td class="col-price">¥${p.price||'-'}</td>
+      <td class="col-desc">${highlight((p.desc||''),q)}</td>
+      <td class="col-link"><a href="${xyUrl(p)}" target="_blank" onclick="event.stopPropagation()">跳转商品页面</a></td>
+    </tr>
+  `).join('');
+}
+document.getElementById('search').addEventListener('input', render);
+render();
+</script>
+</body>
+</html>
